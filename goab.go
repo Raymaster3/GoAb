@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"*/
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,6 +24,7 @@ var serverLink string
 
 // Metrics
 var failedRequests int32 = 0
+var totalTimeOfRequests int64 = 0
 
 // Temporals
 var callsLeft int32
@@ -67,13 +71,30 @@ func inputConfig() {
 }
 
 func makeCall() {
-	atomic.AddInt32(&callsDone, 1)
-	resp, err := http.Get(serverLink)
+	m := sync.Mutex{}
+	startTime := time.Now()
+
+	res, err := http.Get(serverLink)
 	if err != nil {
 		//log.Fatalln(err)
 		atomic.AddInt32(&failedRequests, 1)
 	}
-	_ = resp
+	m.Lock()
+	if callsDone <= int32(concurrentCalls) {
+		totalTimeOfRequests += time.Since(startTime).Milliseconds()
+	}
+	m.Unlock()
+
+	atomic.AddInt32(&callsDone, 1)
+	// If the body of the message is read to completion and then closed the next connection
+	// may reuse the existing sockets
+	if keepAlive {
+		if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
+			log.Fatal(err)
+		}
+		res.Body.Close()
+	}
+	_ = res
 
 	if callsLeft > 0 {
 		/*callsDone := numberOfCalls - callsLeft
@@ -105,9 +126,12 @@ func printConfig() {
 	fmt.Println("Server URL:", serverLink)
 	fmt.Println("")
 }
-func printResults() {
+func printResults(elapsedTime int64) {
 	fmt.Println("Failed calls:", failedRequests)
 	fmt.Println("Failed calls %:", float64(float64(failedRequests)/float64(numberOfCalls)*100.0), "%")
+	fmt.Println("")
+	fmt.Println("Time per request:", float64(totalTimeOfRequests)/float64(concurrentCalls), "(mean [ms])")
+	fmt.Println("Time per request:", float64(elapsedTime)/float64(numberOfCalls), "(mean across all concurrent requests [ms])")
 }
 func main() {
 	inputConfig()
@@ -140,7 +164,8 @@ func main() {
 
 	fmt.Println("Test time:", elapsed)
 	fmt.Println("TPS(#/sec):", float64(numberOfCalls)/float64(elapsed.Seconds()))
-	printResults()
+
+	printResults(elapsed.Milliseconds())
 	/*resp, err := http.Get("https://google.com/")
 	if err != nil {
 		log.Fatalln(err)
