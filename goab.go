@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -74,8 +73,8 @@ func makeCall() {
 	m := sync.Mutex{}
 	startTime := time.Now()
 
-	res, err := http.Get(serverLink)
-	if err != nil {
+	res, err1 := http.Get(serverLink)
+	if err1 != nil {
 		//log.Fatalln(err)
 		atomic.AddInt32(&failedRequests, 1)
 	}
@@ -86,37 +85,21 @@ func makeCall() {
 	m.Unlock()
 
 	atomic.AddInt32(&callsDone, 1)
+
 	// If the body of the message is read to completion and then closed the next connection
 	// may reuse the existing sockets
-	if keepAlive {
-		if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
-			log.Fatal(err)
-		}
+	if keepAlive && err1 == nil {
+		io.Copy(ioutil.Discard, res.Body)
 		res.Body.Close()
 	}
-	_ = res
 
 	if callsLeft > 0 {
-		/*callsDone := numberOfCalls - callsLeft
-		if callsDone%(numberOfCalls/10) == 0 {
-			fmt.Println("Completed", callsDone, "requests")
-		}*/
 		atomic.AddInt32(&callsLeft, -1)
 		// Make another call
 		makeCall()
 	} else {
 		wg.Done()
 	}
-
-	//We Read the response body on the line below.
-	/*body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-
-	}*/
-	//Convert the body to type string
-	//sb := string(body)
-	//log.Printf(sb)
 }
 
 func printConfig() {
@@ -139,19 +122,6 @@ func main() {
 
 	start := time.Now()
 
-	/*for i := 0; i < numberOfCalls; i += concurrentCalls {
-		for j := 0; j < concurrentCalls; j++ {
-			wg.Add(1)
-			// We make the concurrent calls
-			go func() {
-				makeCall()
-				wg.Done()
-			}()
-		}
-		// We wait for the calls to end before dispatching the next wave
-		wg.Wait()
-	}*/
-
 	for j := 0; j < concurrentCalls; j++ {
 		wg.Add(1)
 		callsLeft--
@@ -166,16 +136,4 @@ func main() {
 	fmt.Println("TPS(#/sec):", float64(numberOfCalls)/float64(elapsed.Seconds()))
 
 	printResults(elapsed.Milliseconds())
-	/*resp, err := http.Get("https://google.com/")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//Convert the body to type string
-	sb := string(body)
-	log.Printf(sb)*/
 }
