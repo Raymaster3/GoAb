@@ -7,8 +7,8 @@ To execute goab just simply type in the terminal “go run goab.go [OPTIONS] [UR
 
 The following are the available options:
 
-•	-n: sets the total number of requests, by default is 1
+    •	-n: sets the total number of requests, by default is 1
 
-•	-c: sets the concurrency level, by default is 1
+    •	-c: sets the concurrency level, by default is 1
 
-•	-k: reuse existing connections
+    •	-k: reuse existing connections
