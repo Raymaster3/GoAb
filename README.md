@@ -1,5 +1,5 @@
 # GoAb
-To use goab you first need to have golang installed in your computer.
+To use goab you first need to have [golang installed](https://go.dev/doc/install) in your computer.
 
 ## How to use
 To execute goab just simply type in the terminal “go run goab.go [OPTIONS] [URL]”. 
