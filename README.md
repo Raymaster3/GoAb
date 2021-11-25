@@ -68,3 +68,4 @@ In order to confirm that goab is working as expected a local nginx server was us
 * Time per request: 64 ms 
 ## Observations
 As we can see the implementation is far from perfect, in fact, the numbers are not even similar in some cases. I believe this is caused by my implementation of parallelism and data sharing. This would explain why there are no errors when making more concurrent calls than the server can handle, and why the times are so big. But i can confidently say that the keep-alive functionality is working properly and is opening new connections only in the first batch of calls.  
+Its also worth noting that performing the same tests in a remote server does give us a more natural and similar result. For example using facebook.com as the url and -n 1000 -c 800, we get 175 transfers per second for GOAB and 200 transfers per second in the case of AB.
