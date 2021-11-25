@@ -34,7 +34,7 @@ In order to confirm that goab is working as expected a local nginx server was us
 * Test time: 56 ms
 * Time per request: 44.5 ms
 * Failed: 64
-  ###### These failed requests are because the server has assigned only 768 workers, so ab is giving us 32 errors by exception and an extra 32 errors by discrepancies in the length of the message. Also, because we are executing the test in the same machine as the server is running we can see that there is a correlation between the concurrency level and the request time. 
+  ###### These failed requests are because the server has assigned only 768 workers, so ab is giving us 32 errors by exception and an extra 32 errors by discrepancies in the length of the message. Also, because we are executing the test in the same machine as the server is running we can see that there is a correlation between the concurrency level and the request time. This happens because as we increase the amount of concurrent calls of our program, we are limiting the resources available to serve our page, and this makes the server take more time per request.
 ##### Adding -k:
 * TPS: 16400
 * Test time: 61 ms
