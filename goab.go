@@ -78,8 +78,8 @@ func makeCall(t *http.Transport) {
 	m := sync.Mutex{}
 
 	client := &http.Client{
-		Transport: t,		// Shared transport by default
-		Timeout: 10 * time.Second
+		Transport: t, // Shared transport by default
+		Timeout:   10 * time.Second,
 	}
 
 	// Using the same transport for all the connections allow us to use keep-alive
@@ -102,7 +102,8 @@ func makeCall(t *http.Transport) {
 		//log.Fatalln(err)
 		atomic.AddInt32(&failedRequests, 1)
 	} else {
-		if res.StatusCode != http.StatusOK {
+		if res.StatusCode < 200 || res.StatusCode > 299 {
+			fmt.Println(res.StatusCode)
 			atomic.AddInt32(&failedRequests, 1)
 		}
 	}
