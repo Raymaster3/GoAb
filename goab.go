@@ -4,6 +4,7 @@ import (
 	/*"io/ioutil"
 	"log"
 	"net/http"*/
+
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -69,20 +70,42 @@ func inputConfig() {
 	}
 }
 
-func makeCall() {
-	m := sync.Mutex{}
-	startTime := time.Now()
+//func httpClient() {
+//	return http.Client{Timeout: time.Second * 10}
+//}
 
-	res, err1 := http.Get(serverLink)
-	if err1 != nil {
-		//log.Fatalln(err)
-		atomic.AddInt32(&failedRequests, 1)
+func makeCall(t *http.Transport) {
+	m := sync.Mutex{}
+
+	client := &http.Client{
+		Transport: t,		// Shared transport by default
+		Timeout: 10 * time.Second
 	}
+
+	// Using the same transport for all the connections allow us to use keep-alive
+	// To not use the functionality we need to use different transports for each call
+	if !keepAlive {
+		client.Transport = http.DefaultTransport
+	}
+
+	startTime := time.Now()
+	res, err1 := client.Get(serverLink)
+	//res, err1 := http.Get(serverLink)
+
 	m.Lock()
 	if callsDone <= int32(concurrentCalls) {
 		totalTimeOfRequests += time.Since(startTime).Milliseconds()
 	}
 	m.Unlock()
+
+	if err1 != nil {
+		//log.Fatalln(err)
+		atomic.AddInt32(&failedRequests, 1)
+	} else {
+		if res.StatusCode != http.StatusOK {
+			atomic.AddInt32(&failedRequests, 1)
+		}
+	}
 
 	atomic.AddInt32(&callsDone, 1)
 
@@ -96,7 +119,7 @@ func makeCall() {
 	if callsLeft > 0 {
 		atomic.AddInt32(&callsLeft, -1)
 		// Make another call
-		makeCall()
+		makeCall(t)
 	} else {
 		wg.Done()
 	}
@@ -120,13 +143,18 @@ func main() {
 	inputConfig()
 	printConfig()
 
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns = 200
+	t.MaxConnsPerHost = 200
+	t.MaxIdleConnsPerHost = 200
+
 	start := time.Now()
 
 	for j := 0; j < concurrentCalls; j++ {
 		wg.Add(1)
 		callsLeft--
 		// We make the concurrent calls
-		go makeCall()
+		go makeCall(t)
 	}
 	wg.Wait()
 
