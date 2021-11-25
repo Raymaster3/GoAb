@@ -1,10 +1,6 @@
 package main
 
 import (
-	/*"io/ioutil"
-	"log"
-	"net/http"*/
-
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -70,12 +66,7 @@ func inputConfig() {
 	}
 }
 
-//func httpClient() {
-//	return http.Client{Timeout: time.Second * 10}
-//}
-
-func makeCall(t *http.Transport) {
-	m := sync.Mutex{}
+func makeCall(t *http.Transport, m sync.Mutex) {
 
 	client := &http.Client{
 		Transport: t, // Shared transport by default
@@ -83,14 +74,13 @@ func makeCall(t *http.Transport) {
 	}
 
 	// Using the same transport for all the connections allow us to use keep-alive
-	// To not use the functionality we need to use different transports for each call
+	// To not use the functionality we need to use the default one for each call
 	if !keepAlive {
 		client.Transport = http.DefaultTransport
 	}
 
 	startTime := time.Now()
 	res, err1 := client.Get(serverLink)
-	//res, err1 := http.Get(serverLink)
 
 	m.Lock()
 	if callsDone <= int32(concurrentCalls) {
@@ -99,7 +89,6 @@ func makeCall(t *http.Transport) {
 	m.Unlock()
 
 	if err1 != nil {
-		//log.Fatalln(err)
 		atomic.AddInt32(&failedRequests, 1)
 	} else {
 		if res.StatusCode < 200 || res.StatusCode > 299 {
@@ -110,8 +99,8 @@ func makeCall(t *http.Transport) {
 
 	atomic.AddInt32(&callsDone, 1)
 
-	// If the body of the message is read to completion and then closed the next connection
-	// may reuse the existing sockets
+	// If the body of the message is read to completion and then closed the next call
+	// may reuse the existing connection
 	if keepAlive && err1 == nil {
 		io.Copy(ioutil.Discard, res.Body)
 		res.Body.Close()
@@ -120,7 +109,7 @@ func makeCall(t *http.Transport) {
 	if callsLeft > 0 {
 		atomic.AddInt32(&callsLeft, -1)
 		// Make another call
-		makeCall(t)
+		makeCall(t, m)
 	} else {
 		wg.Done()
 	}
@@ -149,13 +138,15 @@ func main() {
 	t.MaxConnsPerHost = 200
 	t.MaxIdleConnsPerHost = 200
 
+	m := sync.Mutex{}
+
 	start := time.Now()
 
 	for j := 0; j < concurrentCalls; j++ {
 		wg.Add(1)
 		callsLeft--
 		// We make the concurrent calls
-		go makeCall(t)
+		go makeCall(t, m)
 	}
 	wg.Wait()
 
