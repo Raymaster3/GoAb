@@ -66,3 +66,5 @@ In order to confirm that goab is working as expected a local nginx server was us
 * TPS: 8550
 * Test time: 116 ms
 * Time per request: 64 ms 
+## Observations
+As we can see the implementation is far from perfect, in fact, the numbers are not even similar in some cases. I believe this is caused by my implementation of parallelism and data sharing. This would explain why there are no errors when making more concurrent calls than the server can handle, and why the times are so big. But i can confidently say that the keep-alive functionality is working properly and is opening new connections only in the first batch of calls.  
