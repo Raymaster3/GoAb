@@ -39,3 +39,30 @@ In order to confirm that goab is working as expected a local nginx server was us
 * TPS: 16400
 * Test time: 61 ms
 * Time per request: 48ms
+
+### GOAB
+##### With -n 100 -c 20:
+* TPS: 3660
+* Test time: 27 ms
+* Time per request: 1.1ms
+##### Adding -k:
+* TPS: 4200
+* Test time: 23 ms
+* Time per request: 1.4ms
+##### With -n 1000 -c 200:
+* TPS: 5950
+* Test time: 160 ms
+* Time per request: 56 ms
+##### Adding -k:
+* TPS: 7220
+* Test time: 138 ms
+* Time per request: 36 ms  
+##### With -n 1000 -c 800:
+* TPS: 5400
+* Test time: 184 ms
+* Time per request: 141 ms
+  ###### In this case there are no errors because the threads are getting blocked by synchronization and they are not really simultaneous.
+##### Adding -k:
+* TPS: 8550
+* Test time: 116 ms
+* Time per request: 64 ms 
